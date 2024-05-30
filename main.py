@@ -7,7 +7,7 @@ from database import initilize_tables, insert_into_db
 from normalize import process_listening_history
 
 dotenv.load_dotenv(".env")
-PATH_TO_DATADIR = os.getenv("PATH_TO_DATADIR")
+PATH_TO_DATADIR = os.getenv("PATH_TO_DATADIR", "")
 
 
 def main():

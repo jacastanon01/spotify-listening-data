@@ -1,7 +1,7 @@
 import sqlite3
-from typing import Tuple
+from typing import Optional, Tuple
 
-from normalize import ListeningHistoryEntry, extract_id_from_uri
+from normalize import IListeningHistoryEntry, extract_id_from_uri
 
 
 def initilize_tables(conn: sqlite3.Connection) -> None:
@@ -54,34 +54,39 @@ def initilize_tables(conn: sqlite3.Connection) -> None:
     )
 
 
-def insert_into_db(conn: sqlite3.Connection, entry: ListeningHistoryEntry) -> None:
+def insert_into_db(conn: sqlite3.Connection, entry: IListeningHistoryEntry) -> None:
     cursor = conn.cursor()
 
     try:
-        track_id = extract_id_from_uri(entry.get("track_uri"))
-        episode_id = extract_id_from_uri(entry.get("episode_uri"))
+        track_uri = entry.get("track_uri") or ""
+        episode_uri = entry.get("episode_uri") or ""
 
-        if track_id is not None:
+        track_id: Optional[str] = None
+        episode_id: Optional[str] = None
+
+        if track_uri is not None:
+            track_id = extract_id_from_uri(track_uri)
+            track_name = entry.get("track_name") or ""
+            artist_name = entry.get("artist_name") or ""
+            # if None in [track_id, track_uri, track_name, artist_name]:
+            #     raise ValueError("Missing track data")
             insert_track_or_episode(
                 cursor=cursor,
                 entity_type="track",
-                entry=(
-                    track_id,
-                    entry.get("track_uri"),
-                    entry.get("track_name"),
-                    entry.get("artist_name"),
-                ),
+                entry=(track_id, track_uri, track_name, artist_name),
             )
 
         elif episode_id is not None:
+            episode_name = entry.get("episode_name") or ""
+            show_name = entry.get("show_name") or ""
             insert_track_or_episode(
                 cursor=cursor,
                 entity_type="episode",
                 entry=(
                     episode_id,
-                    entry.get("episode_uri"),
-                    entry.get("episode_name"),
-                    entry.get("show_name"),
+                    episode_uri,
+                    episode_name,
+                    show_name,
                 ),
             )
 
