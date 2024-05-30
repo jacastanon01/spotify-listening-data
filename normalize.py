@@ -1,6 +1,8 @@
-from typing import TypedDict, Union, List
+from typing import Dict, TypedDict, Union, List
 import os
 import json
+
+from database import initilize_tables
 
 
 class IListeningHistoryEntry(TypedDict):
@@ -34,9 +36,6 @@ def extract_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
 
 
 def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
-    data = extract_listening_history(data_path)
-    if not data:
-        raise
     mapped_fields = {
         "track_name": "master_metadata_track_name",
         "artist_name": "master_metadata_album_artist_name",
@@ -49,26 +48,49 @@ def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
     }
 
     extracted_data = []
-    seen_entries = set()
-    for line in data:
-        # Filter out data that doesn't have a timestamp or was listened to for less than a minute
-        if line.get("ts") is None or line.get("ms_played") <= 3600:
-            continue
-        # print(json.dumps(line, separators=(",", ":")))
-        entry = {
-            new_key: line.get(old_key)
-            for new_key, old_key in mapped_fields.items()
-            if old_key in line
-        }
+    seen_entries = {}
 
-        unique_contraints = tuple(
-            entry.get(key) for key in ["played_at", "ms_played", "track_uri"]
-        )
+    dirs = os.listdir(data_path)
+    filename = dirs[1]
+    # for filename in os.listdir(data_path):
+    if filename.endswith(".json"):
+        with open(os.path.join(data_path, filename), "r") as f:
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                print("Error loading json file.")
+                # continue
 
-        if unique_contraints not in seen_entries:
-            seen_entries.add(unique_contraints)
-            extracted_data.append(entry)
-    with open("normalized-data/extracted_data.json", "w") as f:
-        f.write(json.dumps(extracted_data, indent=2))
+            for line in data:
+                # Filter out data that doesn't have a timestamp or was listened to for less than a minute
+                if "ts" not in line or line.get("ms_played") <= 3600:
+                    continue
+                # print(json.dumps(line, separators=(",", ":")))
+                entry = {
+                    new_key: line.get(old_key)
+                    for new_key, old_key in mapped_fields.items()
+                    if old_key in line
+                }
 
+                unique_contraints = tuple(
+                    entry.get(key, "")
+                    for key in ["played_at", "ms_played", "track_uri"]
+                )
+
+                if unique_contraints not in seen_entries:
+                    seen_entries[unique_contraints] = True
+                    extracted_data.append(entry)
+
+    write_normalized_data_to_json_file(extracted_data)
     return extracted_data
+
+
+def write_normalized_data_to_json_file(data: List[IListeningHistoryEntry]):
+    path_to_json = "normalized-data/extracted_data.json"
+    if os.path.exists(path_to_json):
+        os.remove(path_to_json)
+    try:
+        with open(path_to_json, "w") as f:
+            json.dump(data, f, indent=2)
+    except IOError as e:
+        print(f"Error writing to {path_to_json}: {e}")

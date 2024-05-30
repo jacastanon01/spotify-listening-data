@@ -14,11 +14,11 @@ def initilize_tables(conn: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY UNIQUE,
             uri TEXT UNIQUE NOT NULL,
             track_name TEXT,
-            artist_name TEXT
-        );
-    """
+            artist_name TEXT,
+            duration_ms INTEGER
+        )
+        """
     )
-
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS episode (
@@ -26,59 +26,74 @@ def initilize_tables(conn: sqlite3.Connection) -> None:
             uri TEXT UNIQUE NOT NULL,
             episode_name TEXT,
             show_name TEXT
-        ); 
-    """
+        )
+        """
     )
-
     cursor.execute(
-        """ 
+        """
         CREATE TABLE IF NOT EXISTS playback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             played_at TEXT NOT NULL,
             ms_played INTEGER NOT NULL
-        );
-    """
-    )
-
-    cursor.execute(
-        """ 
-        CREATE TABLE IF NOT EXISTS playback_activity (
-            playback_id INTEGER,
-            track_id TEXT,
-            episode_id TEXT,
-            FOREIGN KEY (playback_id) REFERENCES playback (id) ON DELETE CASCADE,
-            FOREIGN KEY (track_id) REFERENCES track (id) ON DELETE CASCADE,
-            FOREIGN KEY (episode_id) REFERENCES episode (id) ON DELETE CASCADE
         )
         """
     )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS track_activity (
+            playback_id INTEGER,
+            track_id TEXT,
+            FOREIGN KEY (playback_id) REFERENCES playback (id) ON DELETE CASCADE,
+            FOREIGN KEY (track_id) REFERENCES track (id) ON DELETE CASCADE,
+            PRIMARY KEY (playback_id, track_id)
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS episode_activity (
+            playback_id INTEGER,
+            episode_id TEXT,
+            FOREIGN KEY (playback_id) REFERENCES playback (id) ON DELETE CASCADE,
+            FOREIGN KEY (episode_id) REFERENCES episode (id) ON DELETE CASCADE,
+            PRIMARY KEY (playback_id, episode_id)
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_playback_played_at ON playback(played_at)
+        """
+    )
+    conn.commit()
 
 
 def insert_into_db(conn: sqlite3.Connection, entry: IListeningHistoryEntry) -> None:
     cursor = conn.cursor()
 
     try:
-        track_uri = entry.get("track_uri") or ""
-        episode_uri = entry.get("episode_uri") or ""
+        track_uri = entry.get("track_uri")
+        episode_uri = entry.get("episode_uri")
 
         track_id: Optional[str] = None
         episode_id: Optional[str] = None
 
-        if track_uri is not None:
+        if track_uri:
             track_id = extract_id_from_uri(track_uri)
-            track_name = entry.get("track_name") or ""
-            artist_name = entry.get("artist_name") or ""
-            # if None in [track_id, track_uri, track_name, artist_name]:
-            #     raise ValueError("Missing track data")
+            track_name = entry.get("track_name")
+            artist_name = entry.get("artist_name")
+
             insert_track_or_episode(
                 cursor=cursor,
                 entity_type="track",
                 entry=(track_id, track_uri, track_name, artist_name),
             )
 
-        elif episode_id is not None:
-            episode_name = entry.get("episode_name") or ""
-            show_name = entry.get("show_name") or ""
+        if episode_uri:
+            episode_id = extract_id_from_uri(episode_uri)
+            episode_name = entry.get("episode_name")
+            show_name = entry.get("show_name")
+
             insert_track_or_episode(
                 cursor=cursor,
                 entity_type="episode",
@@ -90,23 +105,17 @@ def insert_into_db(conn: sqlite3.Connection, entry: IListeningHistoryEntry) -> N
                 ),
             )
 
-        cursor.execute(
-            """
-            INSERT INTO playback (played_at, ms_played)
-            VALUES (?, ?);
-        """,
-            (entry.get("played_at"), entry.get("ms_played")),
-        )
+        if track_id or episode_id:
+            playback_id = insert_playback(cursor, entry)
+            if playback_id is not None:
+                if track_id:
+                    insert_track_activity(cursor, playback_id, track_id)
+                if episode_id:
+                    insert_episode_activity(cursor, playback_id, episode_id)
+            else:
+                print("Failed to insert playback record")
 
-        playback_id = cursor.lastrowid
-
-        cursor.execute(
-            """
-            INSERT INTO playback_activity (playback_id, track_id, episode_id)
-            VALUES (?, ?, ?)
-        """,
-            (playback_id, track_id, episode_id),
-        )
+        conn.commit()
 
     except Exception as e:
         print(f"Error: {e}")
@@ -116,8 +125,84 @@ def insert_into_db(conn: sqlite3.Connection, entry: IListeningHistoryEntry) -> N
         cursor.close()
 
 
+def insert_playback(
+    cursor: sqlite3.Cursor, entry: IListeningHistoryEntry
+) -> int | None:
+    cursor.execute(
+        """
+        INSERT INTO playback (played_at, ms_played)
+        VALUES (?, ?);
+    """,
+        (entry.get("played_at"), entry.get("ms_played")),
+    )
+    return cursor.lastrowid
+
+
+def insert_track_activity(
+    cursor: sqlite3.Cursor, playback_id: int, track_id: str
+) -> None:
+    cursor.execute(
+        """
+        INSERT INTO track_activity (playback_id, track_id)
+        VALUES (?, ?)
+    """,
+        (playback_id, track_id),
+    )
+
+
+def insert_episode_activity(
+    cursor: sqlite3.Cursor, playback_id: int, episode_id: str
+) -> None:
+    cursor.execute(
+        """
+        INSERT INTO episode_activity (playback_id, episode_id)
+        VALUES (?, ?)
+    """,
+        (playback_id, episode_id),
+    )
+
+
+# def insert_playback_activity(
+#     cursor: sqlite3.Cursor,
+#     entry: IListeningHistoryEntry,
+#     track_id: Optional[str] = None,
+#     episode_id: Optional[str] = None,
+# ):
+#     if track_id is None and episode_id is None:
+#         return
+
+#     cursor.execute(
+#         """
+#         INSERT INTO playback (played_at, ms_played)
+#         VALUES (?, ?);
+#     """,
+#         (entry.get("played_at"), entry.get("ms_played")),
+#     )
+
+#     playback_id = cursor.lastrowid
+
+#     if track_id:
+#         cursor.execute(
+#             """
+#             INSERT INTO track_activity (playback_id, track_id)
+#             VALUES (?, ?)
+#             """,
+#             (playback_id, track_id),
+#         )
+#     if episode_id:
+#         cursor.execute(
+#             """
+#             INSERT INTO episode_activity (playback_id, episode_id)
+#             VALUES (?, ?)
+#              """,
+#             (playback_id, episode_id),
+#         )
+
+
 def insert_track_or_episode(
-    cursor: sqlite3.Cursor, entity_type: str, entry: Tuple[str, str, str, str]
+    cursor: sqlite3.Cursor,
+    entity_type: str,
+    entry: Tuple[str, str, str | None, str | None],
 ) -> None:
     if entity_type == "track":
         cursor.execute(
