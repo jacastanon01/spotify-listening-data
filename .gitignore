@@ -2,3 +2,4 @@
 spotify_streaming_history_2016_2024
 .env
 *.db
+normalized-data/

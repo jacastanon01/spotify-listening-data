@@ -4,7 +4,7 @@ import sqlite3
 from typing import Dict, List, Tuple, Union, TypedDict
 import dotenv
 
-dotenv.load_dotenv("/.env")
+dotenv.load_dotenv(".env")
 PATH_TO_DATADIR = os.getenv("PATH_TO_DATADIR")
 
 
@@ -30,10 +30,11 @@ def extract_listening_history(data_path: str) -> List[ListeningHistoryEntry]:
     dirs = os.listdir(data_path)
     # for filename in dirs:
     #     print(filename)
+
     if dirs[1].endswith(".json"):
         with open(os.path.join(data_path, dirs[1]), "r") as f:
             data = json.load(f)
-    return data
+        return data
 
 
 def process_listening_history(data_path: str) -> List[ListeningHistoryEntry]:
@@ -69,6 +70,9 @@ def process_listening_history(data_path: str) -> List[ListeningHistoryEntry]:
         if unique_contraints not in seen_entries:
             seen_entries.add(unique_contraints)
             extracted_data.append(entry)
+    with open("normalized-data/extracted_data.json", "w") as f:
+        f.write(json.dumps(extracted_data, indent=2))
+
     return extracted_data
 
 
@@ -213,12 +217,14 @@ if __name__ == "__main__":
         insert_into_db(conn, row)
         # print(json.dumps(row, indent=2))
     # # insert_into_db(conn, data[0])
-    # cursor = conn.cursor()
-    # cursor.execute("SELECT * FROM track")
-    # print(cursor.fetchall())
-    # cursor.execute("SELECT * FROM episode")
-    # print(cursor.fetchall())
-    # cursor.execute("SELECT * FROM playback")
-    # print(cursor.fetchall())
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM track")
+    print(cursor.fetchall())
+
+    cursor.execute("SELECT * FROM episode")
+    json.dumps(cursor.fetchall())
+    cursor.execute("SELECT * FROM playback")
+    json.dumps(cursor.fetchall())
 
     conn.close()
