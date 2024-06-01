@@ -85,12 +85,14 @@ def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
                     extracted_data.append(entry)
     else:
         raise ValueError("Invalid JSON file")
-    write_normalized_data_to_json_file(extracted_data)
+    path_to_json = "normalized-data/extracted_data.json"
+    write_normalized_data_to_json_file(extracted_data, path_to_json)
     return extracted_data
 
 
-def write_normalized_data_to_json_file(data: List[IListeningHistoryEntry]):
-    path_to_json = "normalized-data/extracted_data.json"
+def write_normalized_data_to_json_file(
+    data: List[IListeningHistoryEntry], path_to_json: str
+):
     if os.path.exists(path_to_json):
         os.remove(path_to_json)
     try:

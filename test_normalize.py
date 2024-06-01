@@ -81,12 +81,8 @@ class TestProcessListeningHistory(unittest.TestCase):
         self.assertEqual(result, expected_output)
         mock_open.assert_any_call("/fake/path/test_data.json", "r")
 
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-    )
     @patch("json.dump")
-    def test_write_data_to_json_file(self, mock_json_dump, mock_open_func):
+    def test_write_data_to_json_file(self, mock_json_dump):
         test_data: List[IListeningHistoryEntry] = [
             {
                 "track_name": "Till I Collapse",
@@ -100,45 +96,14 @@ class TestProcessListeningHistory(unittest.TestCase):
             }
         ]
 
-        # Call the function with the test data
-        write_normalized_data_to_json_file(test_data)
+        with patch("builtins.open", mock_open()) as mock_file:
+            write_normalized_data_to_json_file(test_data, "mock_file.json")
 
-        # Assert that the file was opened with the correct path
-        mock_open_func.assert_called_once_with(
-            "normalized-data/extracted_data.json", "w"
+        mock_file.assert_called_once_with("mock_file.json", "w")
+
+        mock_json_dump.assert_called_once_with(
+            test_data, mock_file.return_value, indent=2
         )
-        mock_json_dump.assert_called_once_with(test_data, mock_open_func(), indent=2)
-
-        expected_json_data = '[\n  {\n    "track_name": "Till I Collapse",\n    "artist_name": "Eminem",\n    "played_at": "2020-01-22T19:39:58Z",\n    "ms_played": 4711,\n    "episode_name": null,\n    "show_name": null,\n    "track_uri": "spotify:track:4xkOaSrkexMciUUogZKVTS",\n    "episode_uri": null\n  }\n]'
-
-        # expected_calls = [call(test_data, mock_open_func(), indent=2)]
-        # self.assertEqual(mock_json_dump.call_args_list, expected_calls)
-        # expected_calls = [call(test_data, mock_open_func(), indent=2)]
-        # self.assertEqual(mock_json_dump.call_args_list, expected_calls)
-        # mock_open_func().write.assert_called_once_with(expected_json_data)
-
-        # # Expected output file path
-        # expected_path = "normalized-data/extracted_data.json"
-
-        # # Call the function
-        # # with patch("builtins.open", mock_open, create=True):
-        # write_normalized_data_to_json_file(data)
-        # print(mock_open.mock_open.call_args_list)
-
-        # # Assertions
-        # mock_remove.assert_called_once_with(
-        #     expected_path
-        # )  # Check if os.remove is called with the expected path
-        # # mock_open.assert_called_once_with(expected_path, "w")
-
-        # # with patch("builtins.open", mock_open, create=True):
-        # #     process_listening_history("/fake/path")
-        # # mock_open.assert_any_call("normalized-data/extracted_data.json", "w")
-
-        # # Check the data written to the output file
-        # handle = mock_open()
-        # # print(handle.write.mock_calls)
-        # handle.write.assert_any_call(json.dumps(data, indent=2))
 
     @patch("os.listdir")
     @patch(
@@ -186,13 +151,10 @@ class TestProcessListeningHistory(unittest.TestCase):
         read_data=json.dumps([dict(MOCK_DATA[0], ms_played=1000)]),
     )
     def test_entries_below_threshold(self, mock_open, mock_listdir):
-        # low_played_data = [dict(MOCK_DATA[0], ms_played=1000)]
-        # mock_open.return_value.read_data = json.dumps(low_played_data)
         mock_listdir.return_value = ["ignore.txt", "low_played.json"]
         data_path = "/fake/path"
         result = process_listening_history(data_path)
         self.assertEqual(result, [])
-        # mock_open.assert_called_once_with("/fake/path/low_played.json", "r")
 
 
 if __name__ == "__main__":
