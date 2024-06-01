@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from normalize import IListeningHistoryEntry, extract_id_from_uri
 
 
-def initilize_tables(conn: sqlite3.Connection) -> None:
+def initialize_tables(conn: sqlite3.Connection) -> None:
     # conn = sqlite3.connect(":memory:///data.db")
     cursor = conn.cursor()
 
