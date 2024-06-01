@@ -2,8 +2,6 @@ from typing import Dict, TypedDict, Union, List
 import os
 import json
 
-from database import initilize_tables
-
 
 class IListeningHistoryEntry(TypedDict):
     track_name: Union[str, None]
@@ -24,6 +22,8 @@ def extract_id_from_uri(uri: str) -> str:
 def extract_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
     try:
         dirs = os.listdir(data_path)
+        if not dirs:
+            raise ValueError("No data found in directory.")
         # for filename in dirs:
         #     print(filename)
         data = []
@@ -55,10 +55,13 @@ def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
     # for filename in os.listdir(data_path):
     if filename.endswith(".json"):
         with open(os.path.join(data_path, filename), "r") as f:
+            data = []
             try:
                 data = json.load(f)
             except json.JSONDecodeError:
                 print("Error loading json file.")
+                raise ValueError(("Error loading json file."))
+
                 # continue
 
             for line in data:
@@ -80,7 +83,8 @@ def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
                 if unique_contraints not in seen_entries:
                     seen_entries[unique_contraints] = True
                     extracted_data.append(entry)
-
+    else:
+        raise ValueError("Invalid JSON file")
     write_normalized_data_to_json_file(extracted_data)
     return extracted_data
 
