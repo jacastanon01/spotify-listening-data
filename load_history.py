@@ -1,8 +1,5 @@
-import os
-import sqlite3
-
 from config import PATH_TO_DATADIR
-from database import initialize_db, insert_into_db, reset_and_connect_db
+from database import insert_into_db, reset_and_connect_db
 from normalize import process_listening_history, write_normalized_data_to_json_file
 
 
