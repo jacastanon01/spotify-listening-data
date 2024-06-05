@@ -4,4 +4,4 @@ CREATE TABLE IF NOT EXISTS track (
     track_name TEXT,
     artist_name TEXT,
     duration_ms INTEGER
-)
+);

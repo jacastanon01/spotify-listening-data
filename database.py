@@ -9,13 +9,18 @@ from normalize import IListeningHistoryEntry, extract_id_from_uri
 DATABASE_PATH = "audio.db"
 
 
-def read_sql_file(filename: str) -> str:
+def execute_sql_from_file(cursor: sqlite3.Cursor, file: str) -> None:
     try:
-        with open(filename, "r") as f:
-            return f.read()
+        with open(file, "r") as f:
+            sql_statements = f.read().split(";")
+
+            for statement in sql_statements:
+                if statement.split():
+                    cursor.execute(statement)
+
+            print(cursor.fetchone())
     except IOError as e:
         print(e)
-        return ""
 
 
 def initialize_db(conn: sqlite3.Connection) -> None:
@@ -23,7 +28,7 @@ def initialize_db(conn: sqlite3.Connection) -> None:
     cursor = conn.cursor()
 
     for path in SQL_QUERY_PATHS:
-        cursor.execute(read_sql_file(path))
+        execute_sql_from_file(cursor=cursor, file=path)
 
     conn.commit()
 

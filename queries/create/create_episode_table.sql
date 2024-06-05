@@ -3,4 +3,4 @@ CREATE TABLE IF NOT EXISTS episode (
     uri TEXT UNIQUE NOT NULL,
     episode_name TEXT,
     show_name TEXT
-)
+);
