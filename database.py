@@ -1,10 +1,14 @@
+import os
 import sqlite3
 from typing import Optional, Tuple
 
+
 from normalize import IListeningHistoryEntry, extract_id_from_uri
 
+DATABASE_PATH = "audio.db"
 
-def initialize_tables(conn: sqlite3.Connection) -> None:
+
+def initialize_db(conn: sqlite3.Connection) -> None:
     # conn = sqlite3.connect(":memory:///data.db")
     cursor = conn.cursor()
 
@@ -66,6 +70,17 @@ def initialize_tables(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
+
+
+def reset_and_connect_db() -> sqlite3.Connection:
+    """Delete the existing database file and create a new one."""
+    if os.path.exists(DATABASE_PATH):
+        os.remove(DATABASE_PATH)
+    sqlite_path = f"///{DATABASE_PATH}"
+    conn = sqlite3.connect("audio.db")
+
+    initialize_db(conn)
+    return conn
 
 
 def insert_into_db(conn: sqlite3.Connection, entry: IListeningHistoryEntry) -> None:
