@@ -93,7 +93,7 @@ def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
 
 def write_normalized_data_to_json_file(
     data: List[IListeningHistoryEntry], path_to_json: str
-):
+) -> None:
     if os.path.exists(path_to_json):
         os.remove(path_to_json)
     try:

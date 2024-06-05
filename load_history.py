@@ -6,7 +6,7 @@ from database import initialize_db, insert_into_db, reset_and_connect_db
 from normalize import process_listening_history, write_normalized_data_to_json_file
 
 
-if __name__ == "__main__":
+def load_history_data() -> None:
     conn = reset_and_connect_db()
 
     path_to_json = "normalized-data/extracted_data.json"
