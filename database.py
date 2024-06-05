@@ -76,7 +76,7 @@ def reset_and_connect_db() -> sqlite3.Connection:
     """Delete the existing database file and create a new one."""
     if os.path.exists(DATABASE_PATH):
         os.remove(DATABASE_PATH)
-    sqlite_path = f"///{DATABASE_PATH}"
+
     conn = sqlite3.connect("audio.db")
 
     initialize_db(conn)
