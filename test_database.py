@@ -1,7 +1,7 @@
 import sqlite3
 import unittest
 
-from database import initialize_tables, insert_into_db
+from database import initialize_db, insert_into_db
 from normalize import IListeningHistoryEntry
 
 
@@ -9,7 +9,7 @@ class TestInsertIntoDB(unittest.TestCase):
     def setUp(self):
         self.connection = sqlite3.connect(":memory:")
         self.cursor = self.connection.cursor()
-        initialize_tables(self.connection)
+        initialize_db(self.connection)
 
     def tearDown(self):
         self.connection.close()
