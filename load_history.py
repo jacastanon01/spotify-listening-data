@@ -7,10 +7,10 @@ from normalize import process_listening_history, write_normalized_data_to_json_f
 
 
 def load_history_data(to_json: bool = False) -> None:
-    """Load spotify listening history data into database or write to jsno file
+    """Load spotify listening history data into database or write to json file
 
     Args:
-        bit (int):
+        to_json (bool): Flag indicating whether to create json of data
     """
     data = process_listening_history(PATH_TO_DATADIR)
     conn = reset_and_connect_db()
