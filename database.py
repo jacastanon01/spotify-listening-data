@@ -3,72 +3,28 @@ import sqlite3
 from typing import Optional, Tuple
 
 
+from config import SQL_QUERY_PATHS
 from normalize import IListeningHistoryEntry, extract_id_from_uri
 
 DATABASE_PATH = "audio.db"
+
+
+def read_sql_file(filename: str) -> str:
+    try:
+        with open(filename, "r") as f:
+            return f.read()
+    except IOError as e:
+        print(e)
+        return ""
 
 
 def initialize_db(conn: sqlite3.Connection) -> None:
     # conn = sqlite3.connect(":memory:///data.db")
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS track (
-            id TEXT PRIMARY KEY UNIQUE,
-            uri TEXT UNIQUE NOT NULL,
-            track_name TEXT,
-            artist_name TEXT,
-            duration_ms INTEGER
-        )
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS episode (
-            id TEXT PRIMARY KEY UNIQUE,
-            uri TEXT UNIQUE NOT NULL,
-            episode_name TEXT,
-            show_name TEXT
-        )
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS playback (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            played_at TEXT NOT NULL,
-            ms_played INTEGER NOT NULL
-        )
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS track_activity (
-            playback_id INTEGER,
-            track_id TEXT,
-            FOREIGN KEY (playback_id) REFERENCES playback (id) ON DELETE CASCADE,
-            FOREIGN KEY (track_id) REFERENCES track (id) ON DELETE CASCADE,
-            PRIMARY KEY (playback_id, track_id)
-        )
-        """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS episode_activity (
-            playback_id INTEGER,
-            episode_id TEXT,
-            FOREIGN KEY (playback_id) REFERENCES playback (id) ON DELETE CASCADE,
-            FOREIGN KEY (episode_id) REFERENCES episode (id) ON DELETE CASCADE,
-            PRIMARY KEY (playback_id, episode_id)
-        )
-        """
-    )
-    cursor.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_playback_played_at ON playback(played_at)
-        """
-    )
+    for path in SQL_QUERY_PATHS:
+        cursor.execute(read_sql_file(path))
+
     conn.commit()
 
 
