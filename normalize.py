@@ -58,6 +58,7 @@ def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
             data = []
             try:
                 data = json.load(f)
+                print(data)
             except json.JSONDecodeError:
                 print("Error loading json file.")
                 raise ValueError(("Error loading json file."))
@@ -85,8 +86,8 @@ def process_listening_history(data_path: str) -> List[IListeningHistoryEntry]:
                     extracted_data.append(entry)
     else:
         raise ValueError("Invalid JSON file")
-    path_to_json = "normalized-data/extracted_data.json"
-    write_normalized_data_to_json_file(extracted_data, path_to_json)
+    # path_to_json = "normalized-data/extracted_data.json"
+    # write_normalized_data_to_json_file(extracted_data, path_to_json)
     return extracted_data
 
 
